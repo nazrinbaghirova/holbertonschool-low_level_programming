@@ -5,8 +5,7 @@
  * @s1: first string
  * @s2: second string
  *
- * Return: difference of the first non-matching characters
- * (same behavior as strcmp)
+ * Return: difference between the first different characters
  */
 int _strcmp(char *s1, char *s2)
 {

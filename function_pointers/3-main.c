@@ -1,14 +1,17 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include "3-calc.h"
+#include <stdio.h>
 
 /**
  * main - performs simple operations
+ * @argc: argument count
+ * @argv: argument vector
+ *
+ * Return: 0 on success
  */
 int main(int argc, char *argv[])
 {
-	int (*func)(int, int);
 	int a, b;
+	int (*f)(int, int);
 
 	if (argc != 4)
 	{
@@ -16,8 +19,8 @@ int main(int argc, char *argv[])
 		exit(98);
 	}
 
-	func = get_op_func(argv[2]);
-	if (func == NULL)
+	f = get_op_func(argv[2]);
+	if (f == NULL)
 	{
 		printf("Error\n");
 		exit(99);
@@ -32,7 +35,7 @@ int main(int argc, char *argv[])
 		exit(100);
 	}
 
-	printf("%d\n", func(a, b));
+	printf("%d\n", f(a, b));
 	return (0);
 }
 

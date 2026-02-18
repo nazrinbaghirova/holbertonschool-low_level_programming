@@ -6,46 +6,51 @@
 #define BUF_SIZE 1024
 
 /**
- * print_usage - prints usage error and exits 97
+ * err - prints error message and exits
+ * @code: exit code
+ * @name: filename (or NULL)
+ * @fd: file descriptor (for close error)
  */
-static void print_usage(void)
+void err(int code, char *name, int fd)
 {
-	dprintf(STDERR_FILENO, "Usage: cp file_from file_to\n");
-	exit(97);
+	if (code == 97)
+		dprintf(STDERR_FILENO, "Usage: cp file_from file_to\n");
+	else if (code == 98)
+		dprintf(STDERR_FILENO,
+			"Error: Can't read from file %s\n", name);
+	else if (code == 99)
+		dprintf(STDERR_FILENO,
+			"Error: Can't write to %s\n", name);
+	else if (code == 100)
+		dprintf(STDERR_FILENO,
+			"Error: Can't close fd %d\n", fd);
+	exit(code);
 }
 
 /**
- * err_read - prints read error and exits 98
- * @file: filename
+ * copy_data - copies file content
+ * @fd_from: source fd
+ * @fd_to: destination fd
+ * @av: argument vector
  */
-static void err_read(char *file)
+void copy_data(int fd_from, int fd_to, char **av)
 {
-	dprintf(STDERR_FILENO, "Error: Can't read from file %s\n", file);
-	exit(98);
+	ssize_t r, w;
+	char buffer[BUF_SIZE];
+
+	while ((r = read(fd_from, buffer, BUF_SIZE)) > 0)
+	{
+		w = write(fd_to, buffer, r);
+		if (w == -1 || w != r)
+			err(99, av[2], 0);
+	}
+
+	if (r == -1)
+		err(98, av[1], 0);
 }
 
 /**
- * err_write - prints write error and exits 99
- * @file: filename
- */
-static void err_write(char *file)
-{
-	dprintf(STDERR_FILENO, "Error: Can't write to %s\n", file);
-	exit(99);
-}
-
-/**
- * err_close - prints close error and exits 100
- * @fd: file descriptor
- */
-static void err_close(int fd)
-{
-	dprintf(STDERR_FILENO, "Error: Can't close fd %d\n", fd);
-	exit(100);
-}
-
-/**
- * main - copies content of a file to another file
+ * main - copies content of one file to another
  * @ac: argument count
  * @av: argument vector
  *
@@ -54,45 +59,26 @@ static void err_close(int fd)
 int main(int ac, char **av)
 {
 	int fd_from, fd_to;
-	ssize_t r, w;
-	char buf[BUF_SIZE];
 
 	if (ac != 3)
-		print_usage();
+		err(97, NULL, 0);
 
 	fd_from = open(av[1], O_RDONLY);
 	if (fd_from == -1)
-		err_read(av[1]);
+		err(98, av[1], 0);
 
 	fd_to = open(av[2], O_CREAT | O_WRONLY | O_TRUNC, 0664);
 	if (fd_to == -1)
-	{
-		close(fd_from);
-		err_write(av[2]);
-	}
+		err(99, av[2], 0);
 
-	while ((r = read(fd_from, buf, BUF_SIZE)) > 0)
-	{
-		w = write(fd_to, buf, r);
-		if (w == -1 || w != r)
-		{
-			close(fd_from);
-			close(fd_to);
-			err_write(av[2]);
-		}
-	}
-
-	if (r == -1)
-	{
-		close(fd_from);
-		close(fd_to);
-		err_read(av[1]);
-	}
+	copy_data(fd_from, fd_to, av);
 
 	if (close(fd_from) == -1)
-		err_close(fd_from);
+		err(100, NULL, fd_from);
+
 	if (close(fd_to) == -1)
-		err_close(fd_to);
+		err(100, NULL, fd_to);
 
 	return (0);
 }
+
